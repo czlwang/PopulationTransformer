@@ -1,0 +1,14 @@
+name: ???
+high_gamma: False
+samp_frequency: 2048
+raw_brain_data_dir: ???
+subject: ???
+electrodes: ???
+brain_runs: ???
+rereference: laplacian
+normalization: False
+despike: False
+duration: 5.0
+separation_interval: 0.2
+words: []
+cached_transcript_aligns: ??? 

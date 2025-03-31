@@ -1,0 +1,4 @@
+name: pt_supervised_task_coords
+data_path: ???
+val_split: 0.1
+test_split: 0.1

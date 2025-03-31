@@ -1,0 +1,9 @@
+name: pt_model_custom
+position_encoding: "multi_subj_position_encoding"
+n_head: 8
+n_layers: 6
+hidden_dim: 512
+input_dim: 768
+layer_activation: "gelu"
+attention_weights: false
+use_token_cls_head: true

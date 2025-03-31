@@ -1,0 +1,7 @@
+name: nsp_replace_only_pretrain
+data_path: ???
+val_split: 0.01
+test_split: 0.1
+gaussian_blur: False
+test_data_cfg:
+    gaussian_blur: False

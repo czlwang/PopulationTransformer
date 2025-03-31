@@ -1,0 +1,8 @@
+#This config can only be used when the upstream is frozen
+name: multi_elec_spec_pretrained 
+spec_name: stft
+freq_channel_cutoff: 40
+nperseg: 400
+noverlap: 350
+normalizing: zscore
+upstream_ckpt: ??? 

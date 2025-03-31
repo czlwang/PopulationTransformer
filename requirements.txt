@@ -1,0 +1,13 @@
+h5py==3.11.0
+hydra-core==1.3.2
+mne==1.6.1
+numpy==1.24.4
+omegaconf==2.3.0
+pandas==2.0.3
+psutil==7.0.0
+scikit-learn==1.3.2
+scipy==1.10.1
+tensorboardX==2.6.2.2
+torch-optimizer==0.3.0
+warmup_scheduler @ git+https://github.com/ildoonet/pytorch-gradual-warmup-lr.git@7021d63a49106e22c79b40564a7d39930e7b0f53
+tables
