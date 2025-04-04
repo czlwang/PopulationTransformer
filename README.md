@@ -1,5 +1,8 @@
 # PopulationTransformer
-This is the code for the [PopulationTransformer](https://arxiv.org/abs/2406.03044v1).
+This is the code for the [PopulationTransformer](https://arxiv.org/abs/2406.03044v4).
+
+[[paper](https://arxiv.org/abs/2406.03044)] [[website](https://glchau.github.io/population-transformer/)] [[code](https://github.com/czlwang/PopulationTransformer)] [[huggingface](https://huggingface.co/PopulationTransformer/popt_brainbert_stft)] 
+
 
 ## Prerequisites
 Requirements:
