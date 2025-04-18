@@ -1,4 +1,4 @@
-REPO_DIR="/path/to/PopTCameraReadyPrep"
+REPO_DIR="/path/to/PopulationTransformer"
 
 SUBJECT=sub_1; TASK=rms; python3 -m data.make_subject_specific_manifest \
 +data_prep=subject_specific_manifest \

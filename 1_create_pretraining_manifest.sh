@@ -1,4 +1,4 @@
-REPO_DIR="/path/to/PopTCameraReadyPrep"
+REPO_DIR="/path/to/PopulationTransformer"
 
 python3 -m data.make_pretrain_replace_manifest +data_prep=combine_nsp_datasets \
 ++data_prep.source_dir=${REPO_DIR}/saved_examples/cr_pretrain_examples \

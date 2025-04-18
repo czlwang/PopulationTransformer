@@ -1,4 +1,4 @@
-REPO_DIR="/path/to/PopTCameraReadyPrep"
+REPO_DIR="/path/to/PopulationTransformer"
 
 python3 run_train.py \
 +exp=multi_elec_pretrain \
@@ -11,4 +11,4 @@ python3 run_train.py \
 +model=pt_custom_model \
 +task=nsp_replace_only_pretrain \
 +criterion=nsp_replace_only_pretrain \
-+preprocessor=empty_preprocessor \
++preprocessor=empty_preprocessor

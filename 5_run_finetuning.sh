@@ -1,4 +1,5 @@
-REPO_DIR="/path/to/PopTCameraReadyPrep"
+REPO_DIR="/path/to/PopulationTransformer"
+
 
 SUBJECT=sub_1; TASK=rms; N=1; NAME=popt_brainbert_stft; WEIGHTS=popt_brainbert_stft; 
 python3 run_train.py \

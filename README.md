@@ -30,16 +30,21 @@ If you are, you will need to download the [BrainBERT](https://github.com/czlwang
 
 First, we write the BrainBERT features for pre-training. This command takes a list of brain recordings (see below) and creates a training dataset from their BrainBERT representations:
 ```
-python3 -m data.write_nsp_pretraining_data +preprocessor=multi_elec_spec_pretrained \
-++preprocessor.upstream_ckpt=/storage/czw/self_supervised_seeg/pretrained_weights/stft_large_pretrained.pth \
-+data_prep=pretrain_multi_subj_multi_chan_template ++data_prep.task_name=nsp_pretraining \
-++data_prep.brain_runs=/storage/czw/PopTCameraReadyPrep/trial_selections/pretrain_split_trials.json \
-++data_prep.electrodes=/storage/czw/PopTCameraReadyPrep/electrode_selections/clean_laplacian.json \
-++data_prep.output_directory=/storage/czw/PopTCameraReadyPrep/saved_examples/cr_pretrain_examples \
+REPO_DIR="/path/to/PopulationTransformer"
+BRAINTREEBANK_DIR="/path/to/braintreebank_data"
+
+python3 -m data.write_nsp_pretraining_data \
++preprocessor=multi_elec_spec_pretrained \
+++preprocessor.upstream_ckpt=${REPO_DIR}/pretrained_weights/stft_large_pretrained.pth \
++data_prep=pretrain_multi_subj_multi_chan_template \
+++data_prep.task_name=nsp_pretraining \
+++data_prep.brain_runs=${REPO_DIR}/trial_selections/pretrain_split_trials.json \
+++data_prep.electrodes=${REPO_DIR}/electrode_selections/clean_laplacian.json \
+++data_prep.output_directory=${REPO_DIR}/saved_examples/cr_pretrain_examples \
 +data=pretraining_subject_data_template \
-++data.cached_transcript_aligns=/storage/czw/MultiBrainBERT/semantics/saved_aligns \
-++data.cached_data_array=/storage/czw/MultiBrainBERT/cached_data_arrays/ \
-++data.raw_brain_data_dir=/storage/czw/braintreebank_data/ 
+++data.cached_transcript_aligns=${REPO_DIR}/semantics/saved_aligns \
+++data.cached_data_array=${REPO_DIR}/cached_data_arrays/ \
+++data.raw_brain_data_dir=${BRAINTREEBANK_DIR}  
 ```
 Salient arguments:
 - Input:
@@ -53,9 +58,11 @@ Salient arguments:
 
 Next, we need to create a manifest for all the training examples we've just created. 
 ```
+REPO_DIR="/path/to/PopulationTransformer"
+
 python3 -m data.make_pretrain_replace_manifest +data_prep=combine_nsp_datasets \
-++data_prep.source_dir=/storage/czw/PopTCameraReadyPrep/saved_examples/cr_pretrain_examples \
-++data_prep.output_dir=/storage/czw/PopTCameraReadyPrep/saved_examples/nsp_replace_task-0_5s \
+++data_prep.source_dir=${REPO_DIR}/saved_examples/cr_pretrain_examples \
+++data_prep.output_dir=${REPO_DIR}/saved_examples/nsp_replace_task-0_5s \
 ++data_prep.task="nsp_negative_any"
 ```
 Salient arguments:
@@ -66,13 +73,18 @@ Salient arguments:
 
 Now, we can run the pretraining
 ```
-python3 run_train.py +exp=multi_elec_pretrain ++exp.runner.device=cuda \
+REPO_DIR="/path/to/PopulationTransformer"
+
+python3 run_train.py \
++exp=multi_elec_pretrain \
+++exp.runner.device=cuda \
 +data=nsp_replace_only_pretrain \
-++data.data_path=/storage/czw/PopTCameraReadyPrep/saved_examples/nsp_replace_task-0_5s \
-++data.saved_data_split=/storage/czw/PopTCameraReadyPrep/saved_data_splits/pretrain_split \
+++data.data_path=${REPO_DIR}/saved_examples/nsp_replace_task-0_5s \
+++data.saved_data_split=${REPO_DIR}/saved_data_splits/pretrain_split \
 ++data.test_data_cfg.name=nsp_replace_only_deterministic \
-++data.test_data_cfg.data_path=/storage/czw/PopTCameraReadyPrep/saved_examples/nsp_replace_task-0_5s \
-+model=pt_custom_model +task=nsp_replace_only_pretrain \
+++data.test_data_cfg.data_path=${REPO_DIR}/saved_examples/nsp_replace_task-0_5s \
++model=pt_custom_model \
++task=nsp_replace_only_pretrain \
 +criterion=nsp_replace_only_pretrain \
 +preprocessor=empty_preprocessor
 ```
@@ -85,18 +97,22 @@ Salient arguments:
 ## Fine-tuning
 Now, let's write the BrainBERT features for a finetuning task. For this example, let's decode volume (rms) from one electrode over the course of one trial.
 ```
-python3 -m data.write_multi_subject_multi_channel +data_prep=pretrain_multi_subj_multi_chan_template \
+REPO_DIR="/path/to/PopulationTransformer"
+BRAINTREEBANK_DIR="/path/to/braintreebank_data"
+
+python3 -m data.write_multi_subject_multi_channel \
++data_prep=pretrain_multi_subj_multi_chan_template \
 ++data_prep.task_name=rms \
-++data_prep.brain_runs=/storage/czw/PopTCameraReadyPrep/trial_selections/pretrain_split_trials.json \
-++data_prep.electrodes=/storage/czw/PopTCameraReadyPrep/electrode_selections/clean_laplacian.json \
-++data_prep.output_directory=/storage/czw/PopTCameraReadyPrep/saved_examples/all_test_rms \
+++data_prep.brain_runs=${REPO_DIR}/trial_selections/pretrain_split_trials.json \
+++data_prep.electrodes=${REPO_DIR}/electrode_selections/clean_laplacian.json \
+++data_prep.output_directory=${REPO_DIR}/saved_examples/all_test_rms \
 +preprocessor=multi_elec_spec_pretrained \
-++preprocessor.upstream_ckpt=/storage/czw/self_supervised_seeg/pretrained_weights/stft_large_pretrained.pth \
+++preprocessor.upstream_ckpt=${REPO_DIR}/pretrained_weights/stft_large_pretrained.pth \
 +data=subject_data_template \
-++data.cached_transcript_aligns=/storage/czw/PopTCameraReadyPrep/semantics/saved_aligns \
-++data.cached_data_array=/storage/czw/PopTCameraReadyPrep/cached_data_arrays/ \
-++data.raw_brain_data_dir=/storage/czw/braintreebank_data/ \
-++data.movie_transcripts_dir=/storage/czw/braintreebank_data/transcripts
+++data.cached_transcript_aligns=${REPO_DIR}/semantics/saved_aligns \
+++data.cached_data_array=${REPO_DIR}/cached_data_arrays/ \
+++data.raw_brain_data_dir=${BRAINTREEBANK_DIR}/ \
+++data.movie_transcripts_dir=${BRAINTREEBANK_DIR}/transcripts
 ```
 - Inputs:
     - `data_prep.electrodes` and `data_prep.brain_runs` as in Pretraining, these files specify the trials and channels that will be used to create the dataset.
@@ -106,29 +122,37 @@ python3 -m data.write_multi_subject_multi_channel +data_prep=pretrain_multi_subj
 
 Let's write the manifest for this decoding task.
 ```
+REPO_DIR="/path/to/PopulationTransformer"
+
 SUBJECT=sub_1; TASK=rms; python3 -m data.make_subject_specific_manifest \
 +data_prep=subject_specific_manifest \
-++data_prep.data_path=/storage/czw/PopTCameraReadyPrep/saved_examples/all_test_${TASK} \
+++data_prep.data_path=${REPO_DIR}/saved_examples/all_test_${TASK} \
 ++data_prep.subj=${SUBJECT} \
-++data_prep.out_path=/storage/czw/PopTCameraReadyPrep/saved_examples/${SUBJECT}_${TASK}_cr
+++data_prep.out_path=${REPO_DIR}/saved_examples/${SUBJECT}_${TASK}_cr
 ```
 - Inputs:
     - `data_prep.data_path` should match the `output_directory` given above
 
 Now, we are ready to run the finetuning. You an either fine-tune a model that you have pre-trained yourself, or use a model from [our huggingface repo](https://huggingface.co/PopulationTransformer).
 ```
-SUBJECT=sub_1; TASK=rms; N=1; NAME=randomized_replacement_no_gaussian_blur; WEIGHTS=randomized_replacement_no_gaussian_blur; python3 run_train.py +exp=multi_elec_feature_extract \
-++exp.runner.results_dir=/storage/czw/PopTCameraReadyPrep/outputs/${SUBJECT}_${TASK}_top${N}_${NAME} \
-++exp.runner.save_checkpoints=False ++model.frozen_upstream=False \
+REPO_DIR="/path/to/PopulationTransformer"
+
+
+SUBJECT=sub_1; TASK=rms; N=1; NAME=popt_brainbert_stft; WEIGHTS=popt_brainbert_stft; 
+python3 run_train.py \
++exp=multi_elec_feature_extract \
+++exp.runner.results_dir=${REPO_DIR}/outputs/${SUBJECT}_${TASK}_top${N}_${NAME} \
+++exp.runner.save_checkpoints=False \
+++model.frozen_upstream=False \
 +task=pt_feature_extract_coords \
 +criterion=pt_feature_extract_coords_criterion \
 +preprocessor=empty_preprocessor \
 +data=pt_supervised_task_coords \
-++data.data_path=/storage/czw/PopTCameraReadyPrep/saved_examples/${SUBJECT}_${TASK}_cr \
-++data.saved_data_split=/storage/czw/PopTCameraReadyPrep/saved_data_splits/${SUBJECT}_${TASK}_fine_tuning \
-++data.sub_sample_electrodes=/storage/czw/PopTCameraReadyPrep/electrode_selections/debug_electrodes.json \
+++data.data_path=${REPO_DIR}/saved_examples/${SUBJECT}_${TASK}_cr \
+++data.saved_data_split=${REPO_DIR}/saved_data_splits/${SUBJECT}_${TASK}_fine_tuning \
+++data.sub_sample_electrodes=${REPO_DIR}/electrode_selections/debug_electrodes.json \
 +model=pt_downstream_model \
-++model.upstream_path=/storage/czw/PopTCameraReadyPrep/outputs/${WEIGHTS}.pth \
+++model.upstream_path=${REPO_DIR}/pretrained_weights/${WEIGHTS}.pth \
 ```
 - Inputs:
     - `data.data_path` should match the `out_path` of the manifest creation step above.
