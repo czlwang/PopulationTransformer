@@ -4,7 +4,7 @@ BRAINTREEBANK_DIR="/path/to/braintreebank_data"
 python3 -m data.write_multi_subject_multi_channel \
 +data_prep=pretrain_multi_subj_multi_chan_template \
 ++data_prep.task_name=rms \
-++data_prep.brain_runs=${REPO_DIR}/trial_selections/pretrain_split_trials.json \
+++data_prep.brain_runs=${REPO_DIR}/trial_selections/test_trials.json \
 ++data_prep.electrodes=${REPO_DIR}/electrode_selections/clean_laplacian.json \
 ++data_prep.output_directory=${REPO_DIR}/saved_examples/all_test_rms \
 +preprocessor=multi_elec_spec_pretrained \
