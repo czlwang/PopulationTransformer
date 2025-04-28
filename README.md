@@ -138,7 +138,7 @@ Now, we are ready to run the finetuning. You an either fine-tune a model that yo
 REPO_DIR="/path/to/PopulationTransformer"
 
 
-SUBJECT=sub_1; TASK=rms; N=1; NAME=popt_brainbert_stft; WEIGHTS=popt_brainbert_stft; 
+SUBJECT=sub_1; TASK=rms; N=1; NAME=popt_brainbert_stft; WEIGHTS=pretrained_popt_brainbert_stft; 
 python3 run_train.py \
 +exp=multi_elec_feature_extract \
 ++exp.runner.results_dir=${REPO_DIR}/outputs/${SUBJECT}_${TASK}_top${N}_${NAME} \
@@ -152,7 +152,7 @@ python3 run_train.py \
 ++data.saved_data_split=${REPO_DIR}/saved_data_splits/${SUBJECT}_${TASK}_fine_tuning \
 ++data.sub_sample_electrodes=${REPO_DIR}/electrode_selections/debug_electrodes.json \
 +model=pt_downstream_model \
-++model.upstream_path=${REPO_DIR}/pretrained_weights/${WEIGHTS}.pth \
+++model.upstream_path=${REPO_DIR}/pretrained_weights/${WEIGHTS}.pth 
 ```
 - Inputs:
     - `data.data_path` should match the `out_path` of the manifest creation step above.
