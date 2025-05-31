@@ -76,6 +76,12 @@ class NSPReplaceOnlyPretrain(data.Dataset):
         self.region2id = {r:i for i,r in enumerate(all_dk_regions)}
         self.id2region = {i:r for r,i in self.region2id.items()} 
 
+        coords_dict = {}
+        for subject in self.all_localization_dfs:
+            coords_dict[subject] = self.all_localization_dfs[subject][["L", "I", "P"]].to_numpy()
+        
+        self.coords_dict = coords_dict
+
     def get_input_dim(self):
         item = self.__getitem__(0)
         return item["input"].shape[-1]
@@ -123,7 +129,7 @@ class NSPReplaceOnlyPretrain(data.Dataset):
         channel_subsample = list(range(input_x_1.shape[0]))
         random.shuffle(channel_subsample)
         choice = random.choices([10,20,30,40,50,60,70,80,90,100])[0]
-        channel_subsample = channel_subsample[:choice] #TODO hardcode percentage
+        channel_subsample = channel_subsample[:choice] 
         half = int(len(channel_subsample)/2)
         channel_subsample_1 = sorted(channel_subsample[:half])
         channel_subsample_2 = sorted(channel_subsample[half:])
@@ -156,7 +162,7 @@ class NSPReplaceOnlyPretrain(data.Dataset):
 
         target = torch.cat([cls_token, input_x_1, input_x_2])
         #NOTE: remember not to load to cuda here
-        coords_1 = self.all_localization_dfs[subject][["L", "I", "P"]].to_numpy()
+        coords_1 = self.coords_dict[subject]
         if self.cfg.get("gaussian_blur", True):
             coords_1 = coords_1 + np.random.normal(loc=0, scale=5, size=coords_1.shape)
         coords_2 = coords_1.copy()
@@ -168,16 +174,6 @@ class NSPReplaceOnlyPretrain(data.Dataset):
         seq_len_1 = input_x_1.shape[0]
         seq_len_2 = input_x_2.shape[0]
         seq_id = torch.LongTensor([0]*seq_len_1 + [1]*seq_len_2)
-
-        regions_1 = self.all_localization_dfs[subject]['DesikanKilliany']
-        regions_1 = np.array([self.region2id[r] for r in regions_1])
-        regions_2 = regions_1.copy()
-        regions_1 = regions_1[channel_subsample_1]
-        regions_2 = regions_2[channel_subsample_2]
-        regions = torch.LongTensor(np.concatenate([regions_1, regions_2]))
-
-        if self.cfg.get("region_coords", False):
-            coords = regions
 
         return {
                 "input" : masked_inputs,

@@ -51,7 +51,7 @@ class NSPReplaceOnlyPretrainTask(BaseTask):
         return all_outs
 
     def get_batch_iterator(self, dataset, batch_size, shuffle=True, **kwargs):
-        return data.DataLoader(dataset, batch_size=batch_size, collate_fn=nsp_replace_only_pretrain_collator, **kwargs)
+        return data.DataLoader(dataset, batch_size=batch_size, collate_fn=nsp_replace_only_pretrain_collator, drop_last=True, **kwargs)
 
     def output_logs(self, train_logging_outs, val_logging_outs, writer, global_step):
         val_loss = val_logging_outs["loss"]
