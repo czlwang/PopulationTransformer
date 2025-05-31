@@ -1,3 +1,4 @@
+import pandas as pd
 from omegaconf import DictConfig, OmegaConf
 import hydra
 import logging
@@ -181,7 +182,7 @@ def write_outputs(subject, trial, seeg_data, labels, ordered_electrodes, extract
         manifest.append(save_path)
     return manifest
 
-def write_manifests(subject, all_manifests, output_path):
+def write_manifests(all_manifests, output_path):
     Path(output_path).mkdir(parents=True, exist_ok=True)
     manifest_path = os.path.join(output_path, 'manifest.tsv')
     with open(manifest_path, 'w', newline='') as tsvfile:
@@ -276,6 +277,32 @@ def write_trial_data_piecemeal(subject, brain_run, extracter, data_cfg_template_
     return manifest, labels, localization_df, ordered_electrodes
 
 def write_trial_data(subject, brain_run, extracter, data_cfg_template_copy, cfg):
+    output_path = os.path.join(cfg.data_prep.output_directory, subject, brain_run)
+    if os.path.exists(output_path):
+        labels_path = os.path.join(cfg.data_prep.output_directory, "subject_labels", subject, 'labels.tsv')
+        labels = []
+        with open(labels_path, 'r', newline='') as tsvfile:
+            reader = csv.reader(tsvfile, delimiter='\t', lineterminator='\n')
+            for row in reader:
+                labels.append(row)
+
+        manifest = []
+        manifest_path = os.path.join(cfg.data_prep.output_directory, "subject_manifests", subject, 'manifest.tsv')
+        with open(manifest_path, 'r', newline='') as tsvfile:
+            reader = csv.reader(tsvfile, delimiter='\t', lineterminator='\n')
+            for row in reader:
+                manifest.append(row[0])
+
+        metadata_path = os.path.join(cfg.data_prep.output_directory, "subject_metadata", subject)
+        ordered_electrodes_path = os.path.join(metadata_path, "all_ordered_electrodes.json")
+        with open(ordered_electrodes_path, "r") as f:
+            ordered_electrodes = json.load(f)[subject]
+
+        localization_path = os.path.join(metadata_path, 'localization', f'{subject}.csv')
+        localization_df = pd.read_csv(localization_path)
+        print(f"{output_path} already exists; SKIPPING")
+        return manifest, labels, localization_df, ordered_electrodes
+
     subject_data = get_subject_data(data_cfg_template_copy, cfg.data_prep.task_name) 
     ordered_electrodes = subject_data.electrodes
 
@@ -340,13 +367,15 @@ def main(cfg: DictConfig) -> None:
             all_labels += list(labels)
             all_localization_dfs[subject] = localization_df
 
-        write_manifests(subject, all_manifests, os.path.join(cfg.data_prep.output_directory, "subject_manifests", subject))
+        write_manifests(manifest, os.path.join(cfg.data_prep.output_directory, "subject_manifests", subject))
         write_metadata(all_localization_dfs, all_ordered_electrodes, os.path.join(cfg.data_prep.output_directory, "subject_metadata", subject))
         if cfg.data_prep.task_name in ["spec_target_pretraining"]:
             pass
         else:
             write_labels(os.path.join(cfg.data_prep.output_directory, "subject_labels", subject), labels)
-    write_manifests(subject, all_manifests, cfg.data_prep.output_directory)
+
+
+    write_manifests(all_manifests, cfg.data_prep.output_directory)
     write_metadata(all_localization_dfs, all_ordered_electrodes, cfg.data_prep.output_directory)
     if cfg.data_prep.task_name in ["spec_target_pretraining"]:
         target_extracter = build_preprocessor(cfg.target_preprocessor)
