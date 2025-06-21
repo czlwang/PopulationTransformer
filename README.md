@@ -1,13 +1,38 @@
 # PopulationTransformer
-This is the code for the [PopulationTransformer](https://arxiv.org/abs/2406.03044v4).
+This is the code for the [PopulationTransformer](https://arxiv.org/abs/2406.03044). 
 
-[[paper](https://arxiv.org/abs/2406.03044)] [[website](https://glchau.github.io/population-transformer/)] [[code](https://github.com/czlwang/PopulationTransformer)] [[huggingface](https://huggingface.co/PopulationTransformer/popt_brainbert_stft)] 
+[![Paper](https://img.shields.io/badge/arXiv-2406.03044-red)](https://arxiv.org/abs/2406.03044)
+[![Website](https://img.shields.io/badge/Website-blue)](https://glchau.github.io/population-transformer/)
+[![huggingface](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Models-yellow)](https://huggingface.co/PopulationTransformer/popt_brainbert_stft)
+[![Dataset](https://img.shields.io/badge/Dataset-teal)](https://braintreebank.dev/)
 
+<p align="left">
+    &nbsp;<a href="#quick-start">Quick Start</a>
+    | &nbsp;<a href="#prerequisites">Prerequisites</a>
+    | &nbsp;<a href="#data">Data</a>
+    | &nbsp;<a href="#pretraining">Pretraining</a>
+    | &nbsp;<a href="#fine-tuning">Fine-tuning</a>
+    | &nbsp;<a href="#citation">Citation</a>
+</p>
+
+## Quick Start
+With the [requirements](#prerequisites) and [data](#data) installed, run these scripts for their desired outcomes: 
+
+| Script    | Outcome |
+| -------- | ------- |
+| `0_write_pretraining_data.sh`  | Write pretraining data |
+| `1_create_pretraining_manifest.sh` | Create the pretraining manifest file |
+| `2_run_pretraining.sh`    | Run pretraining |
+| `3_write_finetuning_data.sh`    | Write fine-tuning data |
+| `4_create_finetuning_manifest.sh`    | Create fine-tuning manifest file |
+| `5_run_finetuning.sh`    | Run fine-tuning |
+
+More details about each script in [pretraining](#pretraining) and [fine-tuning](#fine-tuning) sections below. 
 
 ## Prerequisites
 Requirements:
 - pytorch >= 1.13.1
-```
+```bash
 pip install -r requirements.txt
 ```
 
@@ -25,11 +50,14 @@ The following commands expects the Brain Treebank data to have the following str
 ```
 
 ## Pretraining
+<details>
+  <summary>Details</summary>
+  
 The below commands assume that you will be using the PopulationTransformer in conjunction with BrainBERT. 
 If you are, you will need to download the [BrainBERT](https://github.com/czlwang/BrainBERT) weights.
 
 First, we write the BrainBERT features for pre-training. This command takes a list of brain recordings (see below) and creates a training dataset from their BrainBERT representations:
-```
+```bash
 REPO_DIR="/path/to/PopulationTransformer"
 BRAINTREEBANK_DIR="/path/to/braintreebank_data"
 
@@ -57,7 +85,7 @@ Salient arguments:
     - `data.cached_data_array` is the path to an (optional) cache where intermediate outputs can be written for faster processing 
 
 Next, we need to create a manifest for all the training examples we've just created. 
-```
+```bash
 REPO_DIR="/path/to/PopulationTransformer"
 
 python3 -m data.make_pretrain_replace_manifest +data_prep=combine_nsp_datasets \
@@ -72,7 +100,7 @@ Salient arguments:
     - `data_prep.output_dir` is the path where the output will be written.
 
 Now, we can run the pretraining
-```
+```bash
 REPO_DIR="/path/to/PopulationTransformer"
 
 python3 run_train.py \
@@ -93,10 +121,15 @@ Salient arguments:
     - `data.data_path` should match the `data_prep.output_dir` from the manifest creation step above.
 - Output: 
     - The final weights will be saved in an automatically created directory under `outputs`.
+</details>
+
 
 ## Fine-tuning
+<details>
+  <summary>Details</summary>
+  
 Now, let's write the BrainBERT features for a finetuning task. For this example, let's decode volume (rms) from one electrode over the course of one trial.
-```
+```bash
 REPO_DIR="/path/to/PopulationTransformer"
 BRAINTREEBANK_DIR="/path/to/braintreebank_data"
 
@@ -121,7 +154,7 @@ python3 -m data.write_multi_subject_multi_channel \
 
 
 Let's write the manifest for this decoding task.
-```
+```bash
 REPO_DIR="/path/to/PopulationTransformer"
 
 SUBJECT=sub_1; TASK=rms; python3 -m data.make_subject_specific_manifest \
@@ -134,7 +167,7 @@ SUBJECT=sub_1; TASK=rms; python3 -m data.make_subject_specific_manifest \
     - `data_prep.data_path` should match the `output_directory` given above
 
 Now, we are ready to run the finetuning. You an either fine-tune a model that you have pre-trained yourself, or use a model from [our huggingface repo](https://huggingface.co/PopulationTransformer).
-```
+```bash
 REPO_DIR="/path/to/PopulationTransformer"
 
 
@@ -160,3 +193,16 @@ python3 run_train.py \
     - `data.saved_data_split` is a path to where the indices for train/val/test splits will be written. You can use this to ensure that splits are consistent between runs.
 - Outputs:
     - `exp.runner.results_dir` will contain performance metrics (f1, ROC-AUC) on the test set.
+</details>
+
+## Citation
+```bibtex
+@inproceedings{
+      chau_wang_2025_population,
+      title={Population Transformer: Learning Population-level Representations of Neural Activity},
+      url={https://openreview.net/forum?id=FVuqJt3c4L},
+      booktitle={The Thirteenth International Conference on Learning Representations},
+      author={Chau, Geeling and Wang, Christopher and Talukder, Sabera J and Subramaniam, Vighnesh and Soedarmadji, Saraswati and Yue, Yisong and Katz, Boris and Barbu, Andrei},
+      year={2025}
+}
+```
