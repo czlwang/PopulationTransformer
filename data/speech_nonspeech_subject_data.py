@@ -45,7 +45,24 @@ class WordOnsetSubjectData():
 
         electrodes = reader.selected_electrodes
         localization_df = trial_data.get_brain_region_localization_df()
-        neural_data = np.concatenate(seeg_data, axis=1)
+
+        # neural_data = np.concatenate(seeg_data, axis=1)
+        
+        total_words = sum(arr.shape[1] for arr in seeg_data)
+        n_electrodes, _, n_samples = seeg_data[0].shape
+        
+        neural_data_path = "neural_data_memmap.dat"
+        neural_data = np.memmap(neural_data_path, dtype=seeg_data[0].dtype,
+                                mode='w+', shape=(n_electrodes, total_words, n_samples))
+
+        # Fill from seeg_data
+        current_idx = 0
+        for arr in seeg_data:
+            word_count = arr.shape[1]
+            neural_data[:, current_idx:current_idx + word_count, :] = arr
+            current_idx += word_count
+            del arr
+        
         labels_df = pd.concat(words) #NOTE the index will not be unique, but the location will
         #TODO: pretty sure we are missing the get_subj_data method here
         return labels_df, neural_data, trials, electrodes, localization_df
@@ -79,7 +96,24 @@ class SentenceOnsetSubjectData():
 
         electrodes = reader.selected_electrodes
         localization_df = trial_data.get_brain_region_localization_df()
-        neural_data = np.concatenate(seeg_data, axis=1)
+
+        # neural_data = np.concatenate(seeg_data, axis=1)
+        
+        total_words = sum(arr.shape[1] for arr in seeg_data)
+        n_electrodes, _, n_samples = seeg_data[0].shape
+        
+        neural_data_path = "neural_data_memmap.dat"
+        neural_data = np.memmap(neural_data_path, dtype=seeg_data[0].dtype,
+                                mode='w+', shape=(n_electrodes, total_words, n_samples))
+
+        # Fill from seeg_data
+        current_idx = 0
+        for arr in seeg_data:
+            word_count = arr.shape[1]
+            neural_data[:, current_idx:current_idx + word_count, :] = arr
+            current_idx += word_count
+            del arr
+        
         labels_df = pd.concat(words) #NOTE the index will not be unique, but the location will
         #TODO: pretty sure we are missing the get_subj_data method here
         return labels_df, neural_data, trials, electrodes, localization_df

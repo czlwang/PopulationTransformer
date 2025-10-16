@@ -124,6 +124,27 @@ class TrialDataReader(H5DataReader):
         cfg = self.cfg
         return f'cache_{cfg.duration}_d_{cfg.delta}_del_{cfg.rereference}_{cfg.subject}_{electrode}_{self.trial_data.trial_id}_{subject_data_type}_{cfg.high_gamma}_hg'
   
+    def make_cached_data_array_file_name_for_segment(self, cache_dir, electrode):
+        """
+        Given a cache_dir (or file name) and an electrode, returns a new cache name
+        with the electrode replaced, keeping all other parts the same.
+        Assumes naming convention:
+        cache_{duration}_d_{delta}_del_{rereference}_{subject}_{electrode}_{trial_id}_{subject_data_type}_{high_gamma}_hg
+        """
+        import os
+        base_name = os.path.basename(cache_dir)
+        parts = base_name.split('_')
+
+        try:
+            sub_idx = parts.index('sub')
+            electrode_idx = sub_idx + 2  # subject number is sub_idx+1, electrode is sub_idx+2
+            parts[electrode_idx] = str(electrode)
+        except (ValueError, IndexError):
+            raise ValueError(f"Cache dir name {cache_dir} does not match expected format.")
+
+        new_name = '_'.join(parts)
+        return new_name
+  
     def save_cache(self, cached_data_path, results, labels_df, subject_data_type):
         for i,e in enumerate(self.selected_electrodes):
             arr = np.expand_dims(results[i], axis=0)
@@ -134,31 +155,153 @@ class TrialDataReader(H5DataReader):
             np.save(data_array_path, arr)
             data_label_path = os.path.join(e_path, "labels.csv")
             labels_df.to_csv(data_label_path)
+            
+    def find_larger_interval_cache(self, cached_data_path, subject_data_type, desired_duration, desired_delta):
+        """
+        Search for a cache with the same parameters but a larger duration and a delta that allows slicing.
+        Returns (duration, cache_dir) if found, else (None, None).
+        Ensures all parameters except duration and delta match by using make_cached_data_array_file_name.
+        """
+        found = None
+        found_duration = None
+        found_delta = None
+        # Get the current cache name and split by '_', replacing duration and delta with wildcards
+        example_name = self.make_cached_data_array_file_name(self.selected_electrodes[0], subject_data_type)
+        example_parts = example_name.split('_')
+        # duration is always at index 1, delta at index 3
+        for d in os.listdir(cached_data_path):
+            if not d.startswith('cache_'):
+                continue
+            parts = d.split('_')
+            if len(parts) != len(example_parts):
+                continue
+            try:
+                dur = float(parts[1])
+                delta = float(parts[3])
+            except Exception:
+                continue
+            if dur < desired_duration:
+                continue
+            # Only allow if the cached delta is <= desired_delta (so we can slice)
+            if delta > desired_delta:
+                continue
+            # Check all other parts except duration (index 1) and delta (index 3)
+            match = all(parts[i] == example_parts[i] for i in range(len(parts)) if i not in [1, 3])
+            if match:
+                # Prefer the smallest duration that is still >= desired_duration and largest delta <= desired_delta
+                if (found is None or dur < found_duration or (dur == found_duration and delta > found_delta)):
+                    found = d
+                    found_duration = dur
+                    found_delta = delta
+        if found:
+            return found_duration, os.path.join(cached_data_path, found)
+        return None, None
+    
+    def extract_smaller_interval_from_cache(self, arr, labels, large_duration, small_duration, samp_frequency, align='center'):
+        n_samples_large = arr.shape[-1]
+        n_samples_small = int(small_duration * samp_frequency)
+        if n_samples_small > n_samples_large:
+            raise ValueError("Requested interval is larger than cached interval")
+        if align == 'center':
+            start = (n_samples_large - n_samples_small) // 2
+        elif align == 'left':
+            start = 0
+        elif align == 'right':
+            start = n_samples_large - n_samples_small
+        else:
+            raise ValueError("align must be 'center', 'left', or 'right'")
+        end = start + n_samples_small
+        arr_small = arr[..., start:end]
+        return arr_small, labels
+    
 
-    def load_from_cache(self, cached_data_path, subject_data_type):
-        all_arrs, all_labels = [], []
+    def load_from_cache(self, cached_data_path, subject_data_type):        
+        all_labels = None
+        arr_list = []
+        total_rows = 0
+
+        # First pass: validate and get total number of rows
         for e_name in self.selected_electrodes:
             data_dir = self.make_cached_data_array_file_name(e_name, subject_data_type)
-            labels = None
+
             data_label_path = os.path.join(cached_data_path, data_dir, "labels.csv")
-            if os.path.exists(data_label_path):
-                labels = pd.read_csv(data_label_path)
-            arr = None
             data_array_path = os.path.join(cached_data_path, data_dir, "array.npy")
-            if os.path.exists(data_array_path):
-                arr = np.load(data_array_path)
-            all_arrs.append(arr)
-            all_labels.append(labels)
-            if labels is None or all_arrs is None:#This is kind of a hack, but if anything can't be loaded at this point, let's reload the cache contents completely
+
+            if not (os.path.exists(data_label_path) and os.path.exists(data_array_path)):
                 return None, None
 
-        assert len(all_labels) > 0
-        elec_labels = all_labels[0] #really, the elec_labels should be the same for all electrodes. #TODO look into storing these per subject
-        for labels in all_labels:
-            assert all(labels == elec_labels)
+            # Load labels once
+            labels = pd.read_csv(data_label_path)
+            if all_labels is None:
+                all_labels = labels
+            else:
+                assert all(labels == all_labels)
 
-        all_arrs = np.concatenate(all_arrs)
-        return all_arrs, elec_labels
+            # Open array in mmap mode (doesn't load into RAM yet)
+            arr = np.load(data_array_path, mmap_mode='r')
+            arr_list.append(arr)
+            total_rows += arr.shape[0]
+
+        # Preallocate final array
+        example_shape = arr_list[0].shape[1:]  # e.g., (n_samples,)
+        final_shape = (total_rows, *example_shape)
+        combined_arr = np.empty(final_shape, dtype=np.float32)
+
+        # Second pass: fill final array in chunks
+        curr_idx = 0
+        for arr in arr_list:
+            n = arr.shape[0]
+            combined_arr[curr_idx:curr_idx+n] = arr
+            curr_idx += n
+
+        return combined_arr, all_labels
+ 
+
+    def load_segment_from_cache(self, cached_data_path, data_dir_large, duration, align='center'):
+        """
+        Loads a cached array with a larger interval, slices it to the desired interval_duration,
+        and returns the combined array and labels. Uses extract_smaller_interval_from_cache as helper.
+        Ensures the returned data shape and labels index match.
+        """
+        all_labels = None
+        arr_list = []
+        total_rows = 0
+        samp_frequency = self.trial_data.samp_frequency
+
+        for e_name in self.selected_electrodes:
+            data_dir = self.make_cached_data_array_file_name_for_segment(data_dir_large, e_name)
+            
+            data_label_path = os.path.join(cached_data_path, data_dir, "labels.csv")
+            data_array_path = os.path.join(cached_data_path, data_dir, "array.npy")
+
+            if not (os.path.exists(data_label_path) and os.path.exists(data_array_path)):
+                return None, None
+
+            labels = pd.read_csv(data_label_path)
+            if all_labels is None:
+                all_labels = labels
+            else:
+                assert all(labels == all_labels)
+
+            arr = np.load(data_array_path, mmap_mode='r')
+            large_duration = arr.shape[-1] / samp_frequency
+            arr_small, _ = self.extract_smaller_interval_from_cache(
+                arr, labels, large_duration, duration, samp_frequency, align=align
+            )
+            arr_list.append(arr_small)
+            total_rows += arr_small.shape[0]
+
+        example_shape = arr_list[0].shape[1:]
+        final_shape = (total_rows, *example_shape)
+        combined_arr = np.empty(final_shape, dtype=np.float32)
+
+        curr_idx = 0
+        for arr in arr_list:
+            n = arr.shape[0]
+            combined_arr[curr_idx:curr_idx+n] = arr
+            curr_idx += n
+
+        return combined_arr, all_labels
 
     def get_aligned_linguistic_control_matrix(self, duration: int=3, interval_duration=None, onsets_only=True):
         '''
@@ -182,6 +325,17 @@ class TrialDataReader(H5DataReader):
             arr, labels = self.load_from_cache(cached_data_path, cache_name)
             if labels is not None and arr is not None:
                 return arr, labels
+            
+            #here we can also implement a check to load the data from cache if there exists same params and smaller interval
+            dur, cache_dir_large = self.find_larger_interval_cache(cached_data_path, cache_name, duration, self.cfg.delta)
+            log.info(f"loaded intervals from cached data {cached_data_path}")
+            if dur is not None and cache_dir_large is not None:   
+                arr, labels = self.load_segment_from_cache(cached_data_path, cache_dir_large, duration)
+                if labels is not None and arr is not None:
+                    log.info(f"using intervals from cached data array")
+                    return arr, labels
+            ###########
+        
 
         filtered_data = self.get_filtered_data()
 
@@ -276,6 +430,16 @@ class TrialDataReader(H5DataReader):
             if labels is not None and arr is not None:
                 log.info(f"using cached data array")
                 return labels, arr
+            
+            #here we can also implement a check to load the data from cache if there exists same params and smaller interval
+            dur, cache_dir_large = self.find_larger_interval_cache(cached_data_path, "subject-data", duration, delta)
+            log.info(f"loaded intervals from cached data {cached_data_path}")
+            if dur is not None and cache_dir_large is not None:   
+                arr, labels = self.load_segment_from_cache(cached_data_path, cache_dir_large, duration)
+                if labels is not None and arr is not None:
+                    log.info(f"using intervals from cached data array")
+                    return labels, arr
+            ###########
 
         filtered_data = self.get_filtered_data()
 

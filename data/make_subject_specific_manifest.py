@@ -9,6 +9,7 @@ import pandas as pd
 import random
 from sklearn.model_selection import train_test_split
 import shutil
+import numpy as np
 
 log = logging.getLogger(__name__)
 
@@ -19,16 +20,18 @@ def main(cfg: DictConfig) -> None:
     log.info(f'Working directory {os.getcwd()}')
     
     data_path = cfg.data_prep.data_path
+    
 
-    manifest_path = os.path.join(data_path, "manifest.tsv")
+    manifest_path = os.path.join(data_path, f"subject_manifests/{cfg.data_prep.subj}/manifest.tsv")
     assert os.path.exists(manifest_path)
     manifest = []
     with open(manifest_path) as fd:
         rd = csv.reader(fd, delimiter="\t", quotechar='"')
         for row in rd:
-            manifest.append(row)
+            if row[1] == cfg.data_prep.subj:
+                manifest.append(row)
 
-    label_path = os.path.join(data_path, "labels.tsv")
+    label_path = os.path.join(data_path, f"subject_labels/{cfg.data_prep.subj}/labels.tsv")
     assert os.path.exists(label_path)
     labels = []
     with open(label_path) as fd:
@@ -38,22 +41,23 @@ def main(cfg: DictConfig) -> None:
 
     out_path = cfg.data_prep.out_path
     Path(out_path).mkdir(exist_ok=True, parents=True)
-    src = os.path.join(data_path, "localization")
+    src = os.path.join(data_path, f"subject_metadata/{cfg.data_prep.subj}/localization")
     dest = os.path.join(out_path, "localization")
     if not os.path.exists(dest):
         shutil.copytree(src, dest)
 
-    src = os.path.join(data_path, "all_ordered_electrodes.json")
+    src = os.path.join(data_path, f"subject_metadata/{cfg.data_prep.subj}/all_ordered_electrodes.json")
     dest = os.path.join(out_path, "all_ordered_electrodes.json")
     if not os.path.exists(dest):
         shutil.copy(src, dest)
 
+    
     new_manifest, new_labels = [], []
     for manifest_record, labels_record in zip(manifest, labels):
         if manifest_record[1] == cfg.data_prep.subj:
             new_manifest.append(manifest_record)
             new_labels.append(labels_record)
-
+            
     manifest_path = os.path.join(out_path, "manifest.tsv")
     with open(manifest_path, 'w', newline='') as tsvfile:
         writer = csv.writer(tsvfile, delimiter='\t', lineterminator='\n')
@@ -68,5 +72,3 @@ def main(cfg: DictConfig) -> None:
   
 if __name__ == "__main__":
     main()
-
-
