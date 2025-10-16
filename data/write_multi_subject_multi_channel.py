@@ -14,6 +14,7 @@ import numpy as np
 from tqdm import tqdm as tqdm
 import csv
 from scipy.stats import zscore
+import pandas as pd
 
 log = logging.getLogger(__name__)
 
@@ -250,6 +251,32 @@ def get_subject_data(data_cfg_template, task_name, index_subsample=None):
         raise RuntimeError("Task not found")
 
 def write_trial_data_piecemeal(subject, brain_run, extracter, data_cfg_template_copy, cfg):
+    output_path = os.path.join(cfg.data_prep.output_directory, subject, brain_run)
+    if os.path.exists(output_path):
+        labels_path = os.path.join(cfg.data_prep.output_directory, "subject_labels", subject, 'labels.tsv')
+        labels = []
+        with open(labels_path, 'r', newline='') as tsvfile:
+            reader = csv.reader(tsvfile, delimiter='\t', lineterminator='\n')
+            for row in reader:
+                labels.append(row)
+
+        manifest = []
+        manifest_path = os.path.join(cfg.data_prep.output_directory, "subject_manifests", subject, 'manifest.tsv')
+        with open(manifest_path, 'r', newline='') as tsvfile:
+            reader = csv.reader(tsvfile, delimiter='\t', lineterminator='\n')
+            for row in reader:
+                manifest.append(row[0])
+
+        metadata_path = os.path.join(cfg.data_prep.output_directory, "subject_metadata", subject)
+        ordered_electrodes_path = os.path.join(metadata_path, "all_ordered_electrodes.json")
+        with open(ordered_electrodes_path, "r") as f:
+            ordered_electrodes = json.load(f)[subject]
+
+        localization_path = os.path.join(metadata_path, 'localization', f'{subject}.csv')
+        localization_df = pd.read_csv(localization_path)
+        print(f"{output_path} already exists; SKIPPING")
+        return manifest, labels, localization_df, ordered_electrodes
+    
     subject_data = get_subject_data(data_cfg_template_copy, cfg.data_prep.task_name) 
     transcripts = subject_data.get_transcript_dfs()
     transcript = transcripts[0]
