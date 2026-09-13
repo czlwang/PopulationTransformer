@@ -13,6 +13,7 @@ This is the code for the [PopulationTransformer](https://arxiv.org/abs/2406.0304
     | &nbsp;<a href="#pretraining">Pretraining</a>
     | &nbsp;<a href="#fine-tuning">Fine-tuning</a>
     | &nbsp;<a href="#citation">Citation</a>
+    | &nbsp;<a href="#license">License</a>
 </p>
 
 ## Quick Start
@@ -206,3 +207,14 @@ python3 run_train.py \
       year={2025}
 }
 ```
+
+## License
+
+Original PopulationTransformer code and documentation are licensed under the
+[MIT License](LICENSE). Incorporated third-party material retains its own terms;
+see [third-party notices and exceptions](THIRD_PARTY.md), including the
+noncommercial tutorial material and sources whose permissions remain unresolved.
+The MIT grant does not relicense those portions.
+
+Pretrained weights and external datasets are not covered by this code license.
+Their terms must be stated by their respective providers.
