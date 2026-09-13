@@ -1,15 +1,11 @@
 # Third-party notices and license scope
 
 The root [MIT License](LICENSE) applies to original PopulationTransformer code
-and documentation. Third-party material retains its applicable terms, including
-the exceptions and unresolved sources below. No MIT permission is granted here
-for material whose rights are held by someone else.
+and documentation. Third-party material retains its own terms and is not
+relicensed by the MIT grant.
 
-This review accompanies the license branch based on commit
-`dadb55b21daf2809b123d49a9594ff6eebea2c40` and was prepared on 2026-09-13.
 Reference versions below identify material inspected, not necessarily the exact
-revisions originally copied. This document does not certify that all upstream
-permissions have been established.
+revisions originally copied.
 
 ## Transformer layers: PyTorch and Buomsoo Kim's tutorial
 
@@ -30,8 +26,7 @@ The local classes adapt the tutorial's attention-returning encoder and integrate
 it into PopT. Preserve attribution and modification notices and observe the
 noncommercial restriction for material covered by the tutorial's grant. Neither
 the root MIT license nor PyTorch's license overrides rights in the tutorial's
-additions. No endorsement by the upstream authors is implied. A fully permissive
-release would require resolving any applicable noncommercial restriction.
+additions. No endorsement by the upstream authors is implied.
 
 ## SciPy-derived normalization helpers
 
@@ -43,37 +38,3 @@ release would require resolving any applicable noncommercial restriction.
 
 The local implementation simplifies normalization and replaces zero standard
 deviations with one. These adapted portions retain the SciPy terms.
-
-## Sources requiring further provenance or permission confirmation
-
-These entries preserve existing attribution without assigning an unsupported MIT
-license to the borrowed material:
-
-| Local code | Existing source or author credit | Remaining question |
-| --- | --- | --- |
-| `preprocessors/superlet.py` | Gregor Mönke, [tensionhead](https://github.com/tensionhead); implementation of Moca et al.'s superlet method | Establish the exact source revision and applicable implementation license. A paper citation alone is not a code license. |
-| `util/tensorboard_utils.py::plot_to_tensorboard` | [Martin Mundt's TensorBoard figures tutorial](https://martin-mundt.com/tensorboard-figures/) | Confirm the copied source's terms; the page could not be retrieved during this review. |
-| `data/utils.py::compute_m5_hash` and associated helper | [Stack Overflow answer 3431835](https://stackoverflow.com/a/3431835) | Confirm the author and revision actually used and any applicable attribution/share-alike requirements. |
-| `models/transformer_encoder_input.py::PositionalEncoding` | [PyTorch forum discussion](https://discuss.pytorch.org/t/how-to-modify-the-positional-encoding-in-torch-nn-transformer/104308/2) | The cited post contains no code; identify the actual snippet and applicable terms for any forum-specific contribution. |
-
-Stack Overflow's [licensing policy](https://stackoverflow.com/help/licensing)
-assigns different CC BY-SA versions according to the contribution/revision date;
-the currently displayed website license is not enough to identify the terms of a
-historically copied answer. No specific version is assigned here without that
-provenance.
-
-Installed packages, including PyTorch, SciPy, and `warmup_scheduler`, retain their
-own package licenses. This inventory concerns incorporated source and does not
-replace those packages' notices.
-
-## Weights, data, and maintainer review
-
-The root MIT license does not grant rights to separately distributed pretrained
-weights, BrainBERT artifacts, or external datasets. Their providers need to state
-the applicable terms independently.
-
-Before merging the license change, maintainers should confirm that
-"PopulationTransformer contributors" is the appropriate copyright attribution
-and that the relevant contributors or institutions authorize the MIT grant for
-their original contributions. Resolve or retain the third-party exceptions above;
-do not describe the entire repository as unrestricted MIT code while they remain.

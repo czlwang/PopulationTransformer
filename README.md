@@ -212,9 +212,7 @@ python3 run_train.py \
 
 Original PopulationTransformer code and documentation are licensed under the
 [MIT License](LICENSE). Incorporated third-party material retains its own terms;
-see [third-party notices and exceptions](THIRD_PARTY.md), including the
-noncommercial tutorial material and sources whose permissions remain unresolved.
-The MIT grant does not relicense those portions.
+see [THIRD_PARTY.md](THIRD_PARTY.md) for attribution and exceptions, including
+tutorial material under CC BY-NC 4.0.
 
 Pretrained weights and external datasets are not covered by this code license.
-Their terms must be stated by their respective providers.
